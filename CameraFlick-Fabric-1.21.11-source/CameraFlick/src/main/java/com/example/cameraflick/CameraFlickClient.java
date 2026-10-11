@@ -1,3 +1,4 @@
+```java
 package com.example.cameraflick;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -10,53 +11,56 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
-/**
- * Camera Flick: a client-side, configurable camera rotation animation.
- * Settings are in config/camera_flick.properties. Edit while the game is closed,
- * or use the in-game keybinds to change direction / angle presets.
- */
 public final class CameraFlickClient implements ClientModInitializer {
-    private static KeyBinding flickKey;
-    private static KeyBinding directionKey;
-    private static KeyBinding angleKey;
-    private static Settings settings;
+    private static Profiles profiles;
     private static Animation animation;
+    private static KeyBinding profile1Key;
+    private static KeyBinding profile2Key;
 
     @Override
     public void onInitializeClient() {
-        settings = Settings.load();
+        profiles = Profiles.load();
         animation = new Animation();
-        flickKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.camera_flick.activate", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G,
-                KeyBinding.Category.MISC));
-        directionKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.camera_flick.direction", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN,
-                KeyBinding.Category.MISC));
-        angleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.camera_flick.angle", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN,
-                KeyBinding.Category.MISC));
+
+        profile1Key = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.camera_flick.profile1",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G,
+                KeyBinding.Category.MISC
+        ));
+
+        profile2Key = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.camera_flick.profile2",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_H,
+                KeyBinding.Category.MISC
+        ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (flickKey.wasPressed()) animation.start(client, settings);
-            while (directionKey.wasPressed()) {
-                settings.direction = settings.direction == Settings.Direction.RIGHT
-                        ? Settings.Direction.LEFT : Settings.Direction.RIGHT;
-                settings.save();
-                tell(client, "Direction: " + settings.direction.name());
+            while (profile1Key.wasPressed()) {
+                profiles.activeProfile = 1;
+                profiles.save();
+                animation.start(client, profiles.first);
+                tell(client, "Profile 1");
             }
-            while (angleKey.wasPressed()) {
-                settings.angle = settings.angle >= 180 ? 15 : settings.angle + 15;
-                settings.save();
-                tell(client, "Angle: " + settings.angle + " degrees");
+
+            while (profile2Key.wasPressed()) {
+                profiles.activeProfile = 2;
+                profiles.save();
+                animation.start(client, profiles.second);
+                tell(client, "Profile 2");
             }
         });
 
-        // Uses wall-clock time so animations can be shorter than a game tick.
-        HudRenderCallback.EVENT.register((drawContext, tickCounter) -> animation.render(MinecraftClient.getInstance(), settings));
+        HudRenderCallback.EVENT.register((drawContext, tickCounter) ->
+                animation.render(MinecraftClient.getInstance()));
     }
 
     private static void tell(MinecraftClient client, String message) {
-        if (client.player != null) client.player.sendMessage(Text.literal("[Camera Flick] " + message), true);
+        if (client.player != null) {
+            client.player.sendMessage(
+                    Text.literal("[Camera Flick] " + message), true);
+        }
     }
 
     private static final class Animation {
@@ -65,49 +69,60 @@ public final class CameraFlickClient implements ClientModInitializer {
         private float baseYaw;
         private float basePitch;
         private double angle;
+        private double smoothness;
         private long outNanos;
         private long holdNanos;
         private long backNanos;
-        private Settings.Direction direction;
 
-        void start(MinecraftClient client, Settings s) {
+        void start(MinecraftClient client, Profiles.Profile profile) {
             if (client.player == null || active) return;
+
             baseYaw = client.player.getYaw();
             basePitch = client.player.getPitch();
-            angle = s.angle * (s.direction == Settings.Direction.RIGHT ? 1.0 : -1.0);
-            direction = s.direction;
-            outNanos = Math.max(1, s.outMs) * 1_000_000L;
-            holdNanos = Math.max(0, s.delayMs) * 1_000_000L;
-            backNanos = Math.max(1, s.backMs) * 1_000_000L;
+
+            angle = profile.angle
+                    * (profile.direction == Profiles.Direction.RIGHT ? 1 : -1);
+
+            smoothness = profile.smoothness;
+            outNanos = Math.max(1, profile.outMs) * 1_000_000L;
+            holdNanos = Math.max(0, profile.delayMs) * 1_000_000L;
+            backNanos = Math.max(1, profile.backMs) * 1_000_000L;
+
             startNanos = System.nanoTime();
             active = true;
         }
 
-        void render(MinecraftClient client, Settings s) {
+        void render(MinecraftClient client) {
             if (!active || client.player == null) return;
+
             long elapsed = System.nanoTime() - startNanos;
             double offset;
+
             if (elapsed < outNanos) {
-                offset = angle * ease(elapsed / (double) outNanos, s.smoothness);
+                offset = angle * ease(
+                        elapsed / (double) outNanos, smoothness);
             } else if (elapsed < outNanos + holdNanos) {
                 offset = angle;
             } else if (elapsed < outNanos + holdNanos + backNanos) {
-                double p = (elapsed - outNanos - holdNanos) / (double) backNanos;
-                offset = angle * (1.0 - ease(p, s.smoothness));
+                double p = (elapsed - outNanos - holdNanos)
+                        / (double) backNanos;
+                offset = angle * (1.0 - ease(p, smoothness));
             } else {
-                offset = 0;
+                client.player.setYaw(baseYaw);
+                client.player.setPitch(basePitch);
                 active = false;
+                return;
             }
-            // Preserve pitch. Yaw is restored to the exact starting value at completion.
+
             client.player.setYaw((float) (baseYaw + offset));
             client.player.setPitch(basePitch);
         }
 
         private double ease(double x, double strength) {
             x = Math.max(0, Math.min(1, x));
-            // Smoothstep blended with linear motion; strength 0=linear, 1=very smooth.
             double smooth = x * x * (3 - 2 * x);
             return x * (1 - strength) + smooth * strength;
         }
     }
 }
+```
