@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "camera_flick",
+  "version": "${version}",
+  "name": "Camera Flick",
+  "description": "Custom smooth camera flicks with configurable angle, direction, timing and keybinds.",
+  "authors": ["Camera Flick"],
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.example.cameraflick.CameraFlickClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
