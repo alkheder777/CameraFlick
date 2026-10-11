@@ -1,4 +1,4 @@
-```java
+
 package com.example.cameraflick;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -125,4 +125,4 @@ public final class CameraFlickClient implements ClientModInitializer {
         }
     }
 }
-```
+
