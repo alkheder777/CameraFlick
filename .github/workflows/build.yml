@@ -20,7 +20,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build mod
-        run: gradle -p . build
+        shell: bash
+        run: |
+          find . -name build.gradle -print
+          PROJECT_DIR="$(dirname "$(find . -name build.gradle -print -quit)")"
+          if [ "$PROJECT_DIR" = "." ] || [ -z "$PROJECT_DIR" ]; then
+            echo "Could not find build.gradle"
+            exit 1
+          fi
+          gradle -p "$PROJECT_DIR" build
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
