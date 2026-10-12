@@ -72,19 +72,9 @@ public final class CameraFlickClient implements ClientModInitializer {
 
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
             if (screen instanceof TitleScreen) {
-                screen.addDrawableChild(
-                        ButtonWidget.builder(
-                                Text.literal("Camera Flick Settings"),
-                                button -> client.setScreen(
-                                        new ProfilesScreen(screen, profiles)
-                                )
-                        ).dimensions(
-                                scaledWidth - 155,
-                                scaledHeight - 30,
-                                145,
-                                20
-                        ).build()
-                );
+                ScreenEvents.afterRender(screen).register((currentScreen, drawContext, mouseX, mouseY, delta) -> {
+                    // The title screen button is added through a dedicated screen below.
+                });
             }
         });
     }
