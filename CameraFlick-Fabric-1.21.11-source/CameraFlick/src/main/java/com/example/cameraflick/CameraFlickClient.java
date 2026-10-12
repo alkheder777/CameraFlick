@@ -67,6 +67,23 @@ public final class CameraFlickClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register((drawContext, tickCounter) ->
                 animation.render(MinecraftClient.getInstance()));
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+    if (screen instanceof TitleScreen) {
+        screen.addDrawableChild(
+                net.minecraft.client.gui.widget.ButtonWidget.builder(
+                        Text.literal("Camera Flick Settings"),
+                        button -> client.setScreen(
+                                new ProfilesScreen(screen, profiles)
+                        )
+                ).dimensions(
+                        scaledWidth - 155,
+                        scaledHeight - 30,
+                        145,
+                        20
+                ).build()
+        );
+    }
+});
     }
 
     private static void tell(MinecraftClient client, String message) {
