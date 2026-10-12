@@ -1,4 +1,5 @@
-
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.minecraft.client.gui.screen.TitleScreen;
 package com.example.cameraflick;
 
 import net.fabricmc.api.ClientModInitializer;
