@@ -1,12 +1,14 @@
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.client.gui.screen.TitleScreen;
+
 package com.example.cameraflick;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
@@ -67,23 +69,24 @@ public final class CameraFlickClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register((drawContext, tickCounter) ->
                 animation.render(MinecraftClient.getInstance()));
+
         ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-    if (screen instanceof TitleScreen) {
-        screen.addDrawableChild(
-                net.minecraft.client.gui.widget.ButtonWidget.builder(
-                        Text.literal("Camera Flick Settings"),
-                        button -> client.setScreen(
-                                new ProfilesScreen(screen, profiles)
-                        )
-                ).dimensions(
-                        scaledWidth - 155,
-                        scaledHeight - 30,
-                        145,
-                        20
-                ).build()
-        );
-    }
-});
+            if (screen instanceof TitleScreen) {
+                screen.addDrawableChild(
+                        ButtonWidget.builder(
+                                Text.literal("Camera Flick Settings"),
+                                button -> client.setScreen(
+                                        new ProfilesScreen(screen, profiles)
+                                )
+                        ).dimensions(
+                                scaledWidth - 155,
+                                scaledHeight - 30,
+                                145,
+                                20
+                        ).build()
+                );
+            }
+        });
     }
 
     private static void tell(MinecraftClient client, String message) {
