@@ -16,6 +16,7 @@ public final class CameraFlickClient implements ClientModInitializer {
     private static Animation animation;
     private static KeyBinding profile1Key;
     private static KeyBinding profile2Key;
+    private static KeyBinding settingsKey;
 
     @Override
     public void onInitializeClient() {
@@ -36,7 +37,18 @@ public final class CameraFlickClient implements ClientModInitializer {
                 KeyBinding.Category.MISC
         ));
 
+        settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.camera_flick.settings",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_K,
+                KeyBinding.Category.MISC
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (settingsKey.wasPressed()) {
+                client.setScreen(new ProfilesScreen(client.currentScreen, profiles));
+            }
+
             while (profile1Key.wasPressed()) {
                 profiles.activeProfile = 1;
                 profiles.save();
@@ -125,4 +137,3 @@ public final class CameraFlickClient implements ClientModInitializer {
         }
     }
 }
-
